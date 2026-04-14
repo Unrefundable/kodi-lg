@@ -49,7 +49,9 @@ def zip_addon(addon_id: str) -> str:
     version = tree.getroot().get("version")
     zip_path = os.path.join(addon_dir, f"{addon_id}-{version}.zip")
 
-    # Remove old zip so it is not included in the new one.
+    # Remove only the current-version zip so it is not included in the new one.
+    # Old-version zips are intentionally kept so that Kodi clients with a
+    # stale addons.xml cache can still download the version they expect.
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
@@ -125,16 +127,8 @@ def build_index_html(repo_zip_filename: str) -> None:
     print(f"  [html] index.html")
 
 
-# ── Remove any stale root-level repository zips from previous runs ──────── #
-def _clean_old_root_zips() -> None:
-    for fname in os.listdir(REPO_ROOT):
-        if fname.startswith("repository.kodi.lg-") and fname.endswith(".zip"):
-            os.remove(os.path.join(REPO_ROOT, fname))
-
-
 if __name__ == "__main__":
     print("Building Kodi LG repository…")
-    _clean_old_root_zips()
     repo_zip = None
     for addon_id in ADDON_IDS:
         path = zip_addon(addon_id)
