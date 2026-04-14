@@ -110,6 +110,10 @@ def main() -> None:
     if addon.getSetting("remap_ud") != "false":
         install_keymap()
 
+    # Force Kodi to re-fetch addons.xml from all repositories so the
+    # latest version is always visible without waiting for the daily poll.
+    xbmc.executebuiltin("UpdateAddonRepos")
+
     monitor = LGMonitor()
     while not monitor.abortRequested():
         if monitor.waitForAbort(60):
