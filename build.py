@@ -105,65 +105,16 @@ def build_index_html(repo_zip_filename: str) -> None:
     """
     Generate index.html at the repo root.
 
-    GitHub Pages serves this instead of rendering README.md, so Kodi's
-    HTTP directory parser can parse <a href="..."> links and show the
-    repository zip in the file browser.
+    GitHub Pages serves this instead of rendering README.md.  The page
+    contains a single <a href> link to the repository zip so that
+    Kodi's file browser shows only that file when the user navigates
+    to the source URL via Install from zip.
     """
-    tree = ET.parse(os.path.join(REPO_ROOT, REPO_ADDON_ID, "addon.xml"))
-    version = tree.getroot().get("version")
-
     html = f"""<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Kodi LG Repository</title>
-  <style>
-    body {{ font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }}
-    h1 {{ font-size: 1.4em; }}
-    .file {{ margin: 12px 0; }}
-    a {{ color: #2563eb; word-break: break-all; }}
-    code {{ background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: .9em; }}
-    details {{ margin-top: 24px; }}
-    summary {{ cursor: pointer; font-weight: bold; }}
-  </style>
-</head>
+<head><meta charset="UTF-8"><title>Kodi LG Repository</title></head>
 <body>
-
-<h1>Kodi LG Repository <small>v{version}</small></h1>
-<p>LG remote enhancements for Kodi: OSD on Up/Down during playback &amp; voice search.</p>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     Kodi Install Steps
-     ════════════════════════════════════════════════════════════════ -->
-<details open>
-  <summary>Install Instructions</summary>
-  <ol>
-    <li><strong>Add source in Kodi File Manager</strong><br>
-      Settings → File Manager → Add source →
-      <code>{PAGES_URL}/</code>
-      → name it <em>Kodi LG</em></li>
-    <li><strong>Install repository from zip</strong><br>
-      Settings → Add-ons → Install from zip file →
-      select <em>Kodi LG</em> source →
-      click <a href="{repo_zip_filename}">{repo_zip_filename}</a></li>
-    <li><strong>Install the add-on from repository</strong><br>
-      Settings → Add-ons → Install from repository →
-      <em>Kodi LG Repository</em> → Services → <em>Kodi LG</em> → Install</li>
-  </ol>
-</details>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     Files – Kodi's file browser parses the <a href> links below
-     ════════════════════════════════════════════════════════════════ -->
-<details open>
-  <summary>Files</summary>
-  <div class="file">&#128230; <a href="{repo_zip_filename}">{repo_zip_filename}</a></div>
-  <div class="file">&#128196; <a href="addons.xml">addons.xml</a></div>
-  <div class="file">&#128196; <a href="addons.xml.md5">addons.xml.md5</a></div>
-</details>
-
-<p><a href="https://github.com/Unrefundable/kodi-lg">GitHub source</a></p>
-
+<a href="{repo_zip_filename}">{repo_zip_filename}</a>
 </body>
 </html>
 """
