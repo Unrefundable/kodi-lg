@@ -42,11 +42,4 @@
 
   </FullscreenVideo>
 
-  <!-- ── Global: Blue colour button triggers voice search ──────────────── -->
-  <global>
-    <remote>
-      <blue>RunScript(service.kodi.lg)</blue>
-    </remote>
-  </global>
-
 </keymap>

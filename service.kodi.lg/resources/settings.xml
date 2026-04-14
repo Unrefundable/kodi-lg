@@ -17,16 +17,6 @@
             <help>Leave blank to use the free Google Web Speech endpoint (rate-limited). Enter a Google Cloud Speech-to-Text API key for more reliable recognition. Obtain one from console.cloud.google.com.</help>
         </setting>
 
-        <setting id="voice_trigger" type="select" label="Trigger button" default="0">
-            <options>
-                <option label="Blue (default)" value="blue"/>
-                <option label="Yellow" value="yellow"/>
-                <option label="Green" value="green"/>
-                <option label="Red" value="red"/>
-            </options>
-            <help>Which colour button on the LG remote triggers voice search. A Kodi restart is required after changing this.</help>
-        </setting>
-
     </category>
 
     <!-- ── Button Remapping ──────────────────────────────────────────────── -->
