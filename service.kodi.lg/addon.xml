@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="service.kodi.lg" version="1.0.0" name="Kodi LG" provider-name="Unrefundable">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.9.1"/>
+    </requires>
+    <!-- Background service: installs keymap on startup and watches for events -->
+    <extension point="xbmc.service" library="service.py" start="login"/>
+    <!-- Script entry point: called by keymap for voice search -->
+    <extension point="xbmc.python.script" library="default.py"/>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Kodi LG – LG remote enhancements for Kodi</summary>
+        <description lang="en_GB">
+            Enhances Kodi for LG TV users connected via HDMI-CEC.
+
+            Feature 1 – OSD on Up/Down:
+            Remaps the Up and Down navigation buttons during video playback to
+            show the OSD progress bar and pause controls instead of the default
+            10-minute skip forward/back behaviour.
+
+            Feature 2 – Voice Search:
+            Press the configured trigger button (default: Blue colour button) to
+            speak a movie or show name. Audio is captured from a microphone
+            connected to your media player device and sent to Google Speech
+            recognition. The recognised text opens a TMDb Bingie Helper search
+            directly. Note: the LG Magic Remote microphone is handled by
+            LG webOS and cannot be forwarded over HDMI-CEC; a USB microphone
+            plugged into the Ugoos AM6B+ (or similar device) is required.
+        </description>
+        <platform>all</platform>
+        <assets>
+            <icon>resources/icon.png</icon>
+        </assets>
+    </extension>
+</addon>

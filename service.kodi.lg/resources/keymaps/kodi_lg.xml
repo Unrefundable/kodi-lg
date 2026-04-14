@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Kodi LG – kodi_lg.xml
+  Custom keymap overrides for LG TV users connected via HDMI-CEC.
+
+  Changes from Kodi defaults
+  ──────────────────────────
+  ┌──────────────────┬────────┬───────────────────────┬──────────────────────┐
+  │ Context          │ Button │ Default action        │ New action           │
+  ├──────────────────┼────────┼───────────────────────┼──────────────────────┤
+  │ FullscreenVideo  │ Up     │ BigSkipForward (+10m)  │ OSD (progress bar)   │
+  │ FullscreenVideo  │ Down   │ BigSkipBack (-10m)     │ OSD (progress bar)   │
+  │ Global           │ Blue   │ (unassigned)           │ Voice Search addon   │
+  └──────────────────┴────────┴───────────────────────┴──────────────────────┘
+
+  Notes
+  ─────
+  • Both <remote> and <keyboard> sections are set for Up/Down because some
+    HDMI-CEC adapters surface remote navigation as keyboard events.
+  • The Blue colour button is used as the voice-search trigger by default.
+    You can change this in Add-on settings > Kodi LG > Trigger button:
+    the service.py will regenerate and re-install this file on settings change.
+  • This file is managed by service.kodi.lg – do not edit by hand; your
+    changes will be overwritten on the next Kodi startup or settings change.
+-->
+<keymap>
+
+  <!-- ── Video playback: Up/Down shows OSD instead of 10-min seek ───────── -->
+  <FullscreenVideo>
+
+    <!-- HDMI-CEC remote buttons (most LG CEC setups route here) -->
+    <remote>
+      <up>OSD</up>
+      <down>OSD</down>
+    </remote>
+
+    <!-- Fallback: some CEC adapters surface navigation as keyboard events -->
+    <keyboard>
+      <up>OSD</up>
+      <down>OSD</down>
+    </keyboard>
+
+  </FullscreenVideo>
+
+  <!-- ── Global: Blue colour button triggers voice search ──────────────── -->
+  <global>
+    <remote>
+      <blue>RunScript(service.kodi.lg)</blue>
+    </remote>
+  </global>
+
+</keymap>
