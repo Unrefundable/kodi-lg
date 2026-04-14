@@ -22,7 +22,7 @@
     <!-- ── Button Remapping ──────────────────────────────────────────────── -->
     <category id="keymap" label="Button Remapping">
 
-        <setting id="remap_ud" type="bool" label="Up/Down shows OSD during video playback" default="true">
+        <setting id="remap_ud" type="boolean" label="Up/Down shows OSD during video playback" default="true">
             <help>When enabled, pressing Up or Down on the remote while watching a video shows the on-screen progress bar and pause controls instead of skipping forward/back 10 minutes. Takes effect immediately (no restart required).</help>
         </setting>
 
