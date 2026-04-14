@@ -1,31 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<settings version="2">
+<settings>
 
-    <!-- ── Voice Search ──────────────────────────────────────────────────── -->
-    <category id="voice" label="Voice Search">
+    <!-- Voice Search -->
+    <setting id="record_seconds" type="number" label="Recording duration (seconds)" default="5"/>
+    <setting id="voice_language" type="text" label="Recognition language" default="en-US"/>
+    <setting id="google_api_key" type="text" label="Google Cloud Speech API key (optional)" default=""/>
 
-        <setting id="record_seconds" type="integer" label="Recording duration (seconds)" default="5">
-            <constraints min="3" max="15" step="1"/>
-            <help>How many seconds to listen for your voice command. Speak clearly within this window.</help>
-        </setting>
-
-        <setting id="voice_language" type="string" label="Recognition language" default="en-US">
-            <help>BCP-47 language code used for speech recognition, e.g. en-US, en-GB, fr-FR, de-DE.</help>
-        </setting>
-
-        <setting id="google_api_key" type="string" label="Google Cloud Speech API key (optional)" default="">
-            <help>Leave blank to use the free Google Web Speech endpoint (rate-limited). Enter a Google Cloud Speech-to-Text API key for more reliable recognition. Obtain one from console.cloud.google.com.</help>
-        </setting>
-
-    </category>
-
-    <!-- ── Button Remapping ──────────────────────────────────────────────── -->
-    <category id="keymap" label="Button Remapping">
-
-        <setting id="remap_ud" type="boolean" label="Up/Down shows OSD during video playback" default="true">
-            <help>When enabled, pressing Up or Down on the remote while watching a video shows the on-screen progress bar and pause controls instead of skipping forward/back 10 minutes. Takes effect immediately (no restart required).</help>
-        </setting>
-
-    </category>
+    <!-- Button Remapping -->
+    <setting id="remap_ud" type="bool" label="Up/Down shows OSD during video playback" default="true"/>
 
 </settings>

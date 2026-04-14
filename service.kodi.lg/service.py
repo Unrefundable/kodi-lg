@@ -62,7 +62,7 @@ class LGMonitor(xbmc.Monitor):
 
     def onSettingsChanged(self) -> None:  # noqa: N802
         addon = xbmcaddon.Addon()
-        remap_enabled = addon.getSettingBool("remap_ud")
+        remap_enabled = addon.getSetting("remap_ud") == "true"
         if remap_enabled:
             install_keymap()
         else:
@@ -72,7 +72,7 @@ class LGMonitor(xbmc.Monitor):
 def main() -> None:
     # Apply keymap on startup if the setting is enabled (default: True).
     addon = xbmcaddon.Addon()
-    if addon.getSettingBool("remap_ud"):
+    if addon.getSetting("remap_ud") != "false":
         install_keymap()
 
     monitor = LGMonitor()
