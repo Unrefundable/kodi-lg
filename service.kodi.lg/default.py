@@ -31,7 +31,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from urllib.parse import quote_plus
 
 import xbmc
 import xbmcaddon
@@ -53,13 +52,15 @@ _GOOGLE_CLOUD_SPEECH_URL = (
     "https://speech.googleapis.com/v1/speech:recognize?key={api_key}"
 )
 
-# TMDb Bingie Helper search URL – passes query directly so no keyboard appears.
-_TMDB_SEARCH_URL = (
-    "plugin://plugin.video.tmdb.bingie.helper/"
-    "?info=search&tmdb_type=both&query={query}"
-)
+# Skin integration
+# The Bingie skin search window watches Skin.String(CustomSearchTerm).
+# Setting it via a built-in updates the live search results immediately
+# without leaving the search window or showing a separate browser window.
 
 _TMP_AUDIO = os.path.join(tempfile.gettempdir(), "kodi_lg_voice.raw")
+
+# Skin string key used by the Bingie search window to drive live results.
+_SKIN_SEARCH_KEY = "CustomSearchTerm"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────── #
@@ -235,14 +236,20 @@ def transcribe(sample_rate: int = 16000) -> str | None:
 
 # ── Search navigation ─────────────────────────────────────────────────────── #
 
-def open_search(query: str) -> None:
+def apply_search_query(query: str) -> None:
     """
-    Navigate to TMDb Bingie Helper search with the given query.
-    The search window shows combined movie + TV results without a keyboard prompt.
+    Populate the Bingie skin search box with *query*.
+
+    Sets Skin.String(CustomSearchTerm) which the Bingie search window watches
+    to populate its results containers in real time — no window navigation
+    required.  Also fires SetProperty(CustomSearch,1,home) which resets the
+    search pagination state the same way the skin's own keyboard does.
     """
-    url = _TMDB_SEARCH_URL.format(query=quote_plus(query))
-    _log(f"Opening search: {url}")
-    xbmc.executebuiltin(f"ActivateWindow(videos,{url},return)")
+    _log(f"Applying search query to skin: '{query}'")
+    # Escape any single-quotes in the text so the built-in call is safe.
+    safe_query = query.replace("'", "\\'")
+    xbmc.executebuiltin(f"Skin.SetString({_SKIN_SEARCH_KEY},{safe_query})")
+    xbmc.executebuiltin("SetProperty(CustomSearch,1,home)")
 
 
 # ── Main voice search flow ────────────────────────────────────────────────── #
@@ -297,8 +304,8 @@ def voice_search() -> None:
     if not confirmed:
         return
 
-    # ── Step 5: Navigate to search results ─────────────────────────────── #
-    open_search(text)
+    # ── Step 5: Set the search query in the skin ────────────────────────── #
+    apply_search_query(text)
 
 
 if __name__ == "__main__":

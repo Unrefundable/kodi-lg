@@ -5,9 +5,9 @@
     </requires>
     <extension point="xbmc.addon.repository" name="Kodi LG Repository">
         <dir>
-            <info compressed="false">https://raw.githubusercontent.com/Unrefundable/kodi-lg/main/addons.xml</info>
-            <checksum>https://raw.githubusercontent.com/Unrefundable/kodi-lg/main/addons.xml.md5</checksum>
-            <datadir zip="true">https://raw.githubusercontent.com/Unrefundable/kodi-lg/main/</datadir>
+            <info compressed="false">https://unrefundable.github.io/kodi-lg/addons.xml</info>
+            <checksum>https://unrefundable.github.io/kodi-lg/addons.xml.md5</checksum>
+            <datadir zip="true">https://unrefundable.github.io/kodi-lg/</datadir>
         </dir>
     </extension>
     <extension point="xbmc.addon.metadata">
