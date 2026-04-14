@@ -28,6 +28,11 @@ _ADDON_PATH = xbmcvfs.translatePath(_ADDON.getAddonInfo("path"))
 _KEYMAP_SRC = os.path.join(_ADDON_PATH, "resources", "keymaps", "kodi_lg.xml")
 _KEYMAP_DST = xbmcvfs.translatePath("special://userdata/keymaps/kodi_lg.xml")
 
+_SKIN_PATCHES = [
+    ("1080i/VideoOSD.xml", "special://home/addons/skin.bingie/1080i/VideoOSD.xml"),
+    ("1080i/Custom_1109_BingieSearch.xml", "special://home/addons/skin.bingie/1080i/Custom_1109_BingieSearch.xml"),
+]
+
 
 def _log(msg: str, level: int = xbmc.LOGINFO) -> None:
     xbmc.log(f"[{_ADDON_ID}] {msg}", level)
@@ -57,6 +62,34 @@ def remove_keymap() -> None:
         _log(f"Failed to remove keymap: {exc}", xbmc.LOGERROR)
 
 
+def patch_bingie_skin() -> None:
+    """Copy patched Bingie skin files from addon resources into the skin folder.
+
+    Patches applied:
+    - VideoOSD.xml       – removes the auto-pause-on-OSD onload action so pressing
+                           Up/Down shows the OSD without pausing playback.
+    - Custom_1109_BingieSearch.xml – adds the voice-search mic button (id=9898).
+    """
+    patches_dir = os.path.join(_ADDON_PATH, "resources", "skin_patches")
+    bingie_base = xbmcvfs.translatePath("special://home/addons/skin.bingie/")
+
+    if not xbmcvfs.exists(bingie_base):
+        _log("skin.bingie not found – skipping skin patches.")
+        return
+
+    for rel_src, dst_special in _SKIN_PATCHES:
+        src = os.path.join(patches_dir, rel_src.replace("/", os.sep))
+        dst = xbmcvfs.translatePath(dst_special)
+        try:
+            ok = xbmcvfs.copy(src, dst)
+            if ok:
+                _log(f"Skin patch applied: {dst_special}")
+            else:
+                _log(f"xbmcvfs.copy failed: {src} -> {dst}", xbmc.LOGERROR)
+        except Exception as exc:  # noqa: BLE001
+            _log(f"Failed to apply skin patch {rel_src}: {exc}", xbmc.LOGERROR)
+
+
 class LGMonitor(xbmc.Monitor):
     """Watches for settings changes so the keymap can be toggled at runtime."""
 
@@ -70,7 +103,9 @@ class LGMonitor(xbmc.Monitor):
 
 
 def main() -> None:
-    # Apply keymap on startup if the setting is enabled (default: True).
+    # Apply skin patches and keymap on startup.
+    patch_bingie_skin()
+
     addon = xbmcaddon.Addon()
     if addon.getSetting("remap_ud") != "false":
         install_keymap()
