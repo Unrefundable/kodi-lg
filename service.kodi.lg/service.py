@@ -38,6 +38,9 @@ _ADDON_PATH = xbmcvfs.translatePath(_ADDON.getAddonInfo("path"))
 _KEYMAP_SRC = os.path.join(_ADDON_PATH, "resources", "keymaps", "kodi_lg.xml")
 _KEYMAP_DST = xbmcvfs.translatePath("special://userdata/keymaps/kodi_lg.xml")
 
+_SEEK_KEYMAP_SRC = os.path.join(_ADDON_PATH, "resources", "keymaps", "kodi_seek.xml")
+_SEEK_KEYMAP_DST = xbmcvfs.translatePath("special://userdata/keymaps/kodi_seek.xml")
+
 _SKIN_PATCHES = [
     ("1080i/VideoOSD.xml", "special://home/addons/skin.bingie/1080i/VideoOSD.xml"),
     ("1080i/Custom_1109_BingieSearch.xml", "special://home/addons/skin.bingie/1080i/Custom_1109_BingieSearch.xml"),
@@ -53,7 +56,6 @@ def install_keymap() -> None:
     try:
         ok = xbmcvfs.copy(_KEYMAP_SRC, _KEYMAP_DST)
         if ok:
-            xbmc.executebuiltin("Action(reloadkeymaps)")
             _log(f"Keymap installed: {_KEYMAP_DST}")
         else:
             _log(f"xbmcvfs.copy failed: {_KEYMAP_SRC} -> {_KEYMAP_DST}", xbmc.LOGERROR)
@@ -61,15 +63,27 @@ def install_keymap() -> None:
         _log(f"Failed to install keymap: {exc}", xbmc.LOGERROR)
 
 
+def install_seek_keymap() -> None:
+    """Deploy the general seek keymap (FF/RW → direct seek for all remotes)."""
+    try:
+        ok = xbmcvfs.copy(_SEEK_KEYMAP_SRC, _SEEK_KEYMAP_DST)
+        if ok:
+            _log(f"Seek keymap installed: {_SEEK_KEYMAP_DST}")
+        else:
+            _log(f"xbmcvfs.copy failed: {_SEEK_KEYMAP_SRC} -> {_SEEK_KEYMAP_DST}", xbmc.LOGERROR)
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to install seek keymap: {exc}", xbmc.LOGERROR)
+
+
 def remove_keymap() -> None:
-    """Delete the installed keymap and reload Kodi's keymaps."""
+    """Delete the installed keymaps and reload Kodi's keymaps."""
     try:
         if xbmcvfs.exists(_KEYMAP_DST):
             xbmcvfs.delete(_KEYMAP_DST)
-            xbmc.executebuiltin("Action(reloadkeymaps)")
-            _log("Keymap removed.")
+            _log("LG keymap removed.")
     except Exception as exc:  # noqa: BLE001
         _log(f"Failed to remove keymap: {exc}", xbmc.LOGERROR)
+    xbmc.executebuiltin("Action(reloadkeymaps)")
 
 
 def patch_bingie_skin() -> None:
@@ -153,44 +167,44 @@ def set_trakt_page_size() -> None:
 
 _ADVANCED_SETTINGS = """\
 <advancedsettings>
-    <!-- Stream buffer: 256 MiB read-ahead so FF/RW on streaming sources
-         doesn't snap back on slow-start devices (e.g. Ugoos AM6B+). -->
-    <cache>
-        <buffermode>1</buffermode>
-        <memorysize>268435456</memorysize>
-        <readfactor>20.0</readfactor>
-    </cache>
+    <!-- seekdelay: Kodi waits this many ms after the last button press before
+         performing the seek. While holding FF/RW the position accumulates;
+         releasing the button triggers ONE seek to that timestamp and the
+         stream loads from there — just like the resume button. No speed-ramp,
+         no buffering at 8x speed. 750ms feels responsive without double-seeking. -->
+    <videoplayer>
+        <seekdelay>750</seekdelay>
+    </videoplayer>
 </advancedsettings>
 """
 
 
 def ensure_advanced_settings() -> None:
-    """Create userdata/advancedsettings.xml with stream buffer settings.
+    """Write userdata/advancedsettings.xml with seek-optimised settings.
 
-    Only writes the file if it does not already exist, so manual edits
-    made by the user are never overwritten.
+    Always overwrites so the Ugoos picks up updated values on every addon upgrade.
     """
     dst = xbmcvfs.translatePath("special://profile/advancedsettings.xml")
-    if xbmcvfs.exists(dst):
-        _log("advancedsettings.xml already exists – not overwriting.")
-        return
     try:
         with xbmcvfs.File(dst, "w") as fh:
             fh.write(_ADVANCED_SETTINGS)
-        _log("advancedsettings.xml created with 256 MiB stream buffer.")
+        _log("advancedsettings.xml written (direct-seek mode, 10 min steps).")
     except Exception as exc:  # noqa: BLE001
-        _log(f"Failed to create advancedsettings.xml: {exc}", xbmc.LOGERROR)
+        _log(f"Failed to write advancedsettings.xml: {exc}", xbmc.LOGERROR)
 
 
 def main() -> None:
-    # Apply skin patches and keymap on startup.
+    # Apply skin patches, keymaps, and settings on startup.
     patch_bingie_skin()
+    install_seek_keymap()
     set_trakt_page_size()
     ensure_advanced_settings()
 
     addon = xbmcaddon.Addon()
     if addon.getSetting("remap_ud") != "false":
         install_keymap()
+
+    xbmc.executebuiltin("Action(reloadkeymaps)")
 
     # Force Kodi to re-fetch addons.xml from all repositories so the
     # latest version is always visible without waiting for the daily poll.

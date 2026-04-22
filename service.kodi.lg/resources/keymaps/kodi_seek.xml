@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  kodi_seek.xml – managed by service.kodi.lg
+  General seek behaviour fix for all remotes and devices.
+
+  Problem
+  ───────
+  Kodi's default behaviour for FF/REW is speed-ramp mode (2x → 4x → 8x).
+  This works for local files but fails on streaming sources (e.g. Real-Debrid
+  via KDMM) because Kodi tries to actually decode and play frames at 8x speed,
+  which requires the stream to download 8x faster than playback rate.  When
+  the network can't sustain that, Kodi snaps back to where buffered data ends.
+
+  Fix
+  ───
+  Remap FastForward → BigStepForward and Rewind → BigStepBack for every remote
+  type.  These are direct seek actions: Kodi pauses, the user holds the button
+  to accumulate position (10 min per press, configurable via advancedsettings),
+  then when the button is released the player jumps to that timestamp and loads
+  the stream from there — exactly like the "resume" button behaviour.
+
+  This file is managed by service.kodi.lg and is re-deployed on every Kodi
+  startup.
+-->
+<keymap>
+
+  <FullscreenVideo>
+
+    <!-- Standard media remote (most CEC, IR, and bluetooth devices) -->
+    <remote>
+      <!-- Hold to accumulate position, release = load stream from timestamp -->
+      <fastforward>BigStepForward</fastforward>
+      <rewind>BigStepBack</rewind>
+    </remote>
+
+    <!-- Keyboard fallback (some CEC adapters and Android boxes surface
+         these as keyboard events) -->
+    <keyboard>
+      <fastforward>BigStepForward</fastforward>
+      <rewind>BigStepBack</rewind>
+    </keyboard>
+
+  </FullscreenVideo>
+
+</keymap>
