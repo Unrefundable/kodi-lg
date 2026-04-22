@@ -25,10 +25,12 @@ Responsibilities
 """
 
 import os
+import time
 import xml.etree.ElementTree as ET
 
 import xbmc
 import xbmcaddon
+import xbmcgui
 import xbmcvfs
 
 _ADDON = xbmcaddon.Addon()
@@ -126,6 +128,78 @@ class LGMonitor(xbmc.Monitor):
             remove_keymap()
 
 
+# ── Seek accumulator ──────────────────────────────────────────────────────── #
+# Shared window properties (set by default.py via RunScript, read here).
+_HOME_WIN      = None   # set in main() after xbmcgui is usable
+_PROP_DIR      = "KodiLG_SeekDir"
+_PROP_COUNT    = "KodiLG_SeekCount"
+_PROP_TIME     = "KodiLG_SeekTime"
+
+# How long after the LAST button press before we commit the seek.
+# 1.5 s lets the user hold the button as long as they want; the seek
+# fires ~1.5 s after they release.
+_SEEK_COMMIT_DELAY = 1.5
+
+
+def _get_big_seek_step_seconds() -> int:
+    """Read Kodi's own 'big skip step' setting (set in Settings → Player).
+
+    Returns the step in seconds.  Falls back to 600 s (10 min) if the
+    setting cannot be read.
+    """
+    try:
+        import json as _json
+        result = xbmc.executeJSONRPC(_json.dumps({
+            "jsonrpc": "2.0",
+            "method": "Settings.GetSettingValue",
+            "params": {"setting": "videoplayer.seekstepsbig"},
+            "id": 1,
+        }))
+        data = _json.loads(result)
+        minutes = data.get("result", {}).get("value", 10)
+        return int(minutes) * 60
+    except Exception:
+        return 600
+
+
+def seek_accumulator_loop(monitor: xbmc.Monitor) -> None:
+    """Background loop: wait for FF/RW button to be released, then seek once.
+
+    default.py writes _PROP_DIR / _PROP_COUNT / _PROP_TIME on each key
+    repeat.  We poll every 0.2 s; when _PROP_TIME is more than
+    _SEEK_COMMIT_DELAY seconds old we execute one seekTime() to the
+    accumulated target position and clear state.
+    """
+    home = xbmcgui.Window(10000)
+    player = xbmc.Player()
+
+    while not monitor.abortRequested():
+        raw_ts = home.getProperty(_PROP_TIME)
+        if raw_ts:
+            elapsed = time.time() - float(raw_ts)
+            if elapsed >= _SEEK_COMMIT_DELAY:
+                # Atomically clear so we don't double-seek.
+                home.setProperty(_PROP_TIME, "")
+                count     = int(home.getProperty(_PROP_COUNT) or "0")
+                direction = int(home.getProperty(_PROP_DIR)   or "0")
+                home.setProperty(_PROP_COUNT, "0")
+
+                if count > 0 and direction != 0 and player.isPlayingVideo():
+                    step    = _get_big_seek_step_seconds()
+                    current = player.getTime()
+                    total   = player.getTotalTime()
+                    target  = max(0.0, min(float(total), current + direction * count * step))
+                    _log(
+                        f"Seek: {'+' if direction > 0 else ''}"
+                        f"{direction * count * step}s "
+                        f"({count} × {step}s) → {target:.0f}s"
+                    )
+                    player.seekTime(target)
+
+        if monitor.waitForAbort(0.2):
+            break
+
+
 def set_trakt_page_size() -> None:
     """Set pagemulti_trakt=13 in the TMDb Bingie Helper user settings.
 
@@ -165,30 +239,23 @@ def set_trakt_page_size() -> None:
         _log(f"Failed to patch pagemulti_trakt: {exc}", xbmc.LOGERROR)
 
 
-_ADVANCED_SETTINGS = """\
-<advancedsettings>
-    <!-- seekdelay: Kodi waits this many ms after the last button press before
-         performing the seek. While holding FF/RW the position accumulates;
-         releasing the button triggers ONE seek to that timestamp and the
-         stream loads from there — just like the resume button. No speed-ramp,
-         no buffering at 8x speed. 750ms feels responsive without double-seeking. -->
-    <videoplayer>
-        <seekdelay>750</seekdelay>
-    </videoplayer>
-</advancedsettings>
-"""
-
-
 def ensure_advanced_settings() -> None:
-    """Write userdata/advancedsettings.xml with seek-optimised settings.
+    """Ensure advancedsettings.xml exists but leave any existing user content.
 
-    Always overwrites so the Ugoos picks up updated values on every addon upgrade.
+    seekdelay is no longer needed: FF/RW now use the script-based
+    seek accumulator in seek_accumulator_loop(), which fires ONE seekTime()
+    call after the user releases the button.  We only write the file if it
+    doesn't already exist so we don't clobber user customisations.
     """
     dst = xbmcvfs.translatePath("special://profile/advancedsettings.xml")
+    if xbmcvfs.exists(dst):
+        _log("advancedsettings.xml already present — not overwriting.")
+        return
+    minimal = "<advancedsettings>\n</advancedsettings>\n"
     try:
         with xbmcvfs.File(dst, "w") as fh:
-            fh.write(_ADVANCED_SETTINGS)
-        _log("advancedsettings.xml written (direct-seek mode, 10 min steps).")
+            fh.write(minimal)
+        _log("advancedsettings.xml created (minimal placeholder).")
     except Exception as exc:  # noqa: BLE001
         _log(f"Failed to write advancedsettings.xml: {exc}", xbmc.LOGERROR)
 
@@ -211,6 +278,16 @@ def main() -> None:
     xbmc.executebuiltin("UpdateAddonRepos")
 
     monitor = LGMonitor()
+
+    # Start the seek accumulator in a background thread.  It polls window
+    # properties written by default.py (via RunScript) and fires one
+    # seekTime() call ~1.5 s after the user releases the FF/RW button.
+    import threading
+    seek_thread = threading.Thread(
+        target=seek_accumulator_loop, args=(monitor,), daemon=True
+    )
+    seek_thread.start()
+
     while not monitor.abortRequested():
         if monitor.waitForAbort(60):
             break
