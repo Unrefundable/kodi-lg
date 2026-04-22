@@ -13,9 +13,19 @@ Responsibilities
    Re-installs or removes the keymap when the user toggles the
    "remap_ud" setting so changes take effect without a Kodi restart
    (a keymap reload is triggered automatically).
+
+3. TRAKT PAGE SIZE
+   Sets pagemulti_trakt=13 in the TMDb Bingie Helper user settings so
+   Trakt lists (e.g. Top 250) fetch up to 260 items instead of the
+   default 20.
+
+4. STREAM BUFFER (advancedsettings.xml)
+   Creates userdata/advancedsettings.xml with a 256 MiB read-ahead cache
+   so fast-forward/rewind on streaming sources doesn't snap back.
 """
 
 import os
+import xml.etree.ElementTree as ET
 
 import xbmc
 import xbmcaddon
@@ -102,9 +112,81 @@ class LGMonitor(xbmc.Monitor):
             remove_keymap()
 
 
+def set_trakt_page_size() -> None:
+    """Set pagemulti_trakt=13 in the TMDb Bingie Helper user settings.
+
+    The plugin's UI caps this at 3 (60 items) but the code reads the
+    value directly from the user settings XML, so writing 13 gives
+    20 × 13 = 260 items — enough to cover the full Trakt Top 250.
+    """
+    settings_path = xbmcvfs.translatePath(
+        "special://profile/addon_data/plugin.video.tmdb.bingie.helper/settings.xml"
+    )
+    if not xbmcvfs.exists(settings_path):
+        _log("TMDb Bingie Helper settings.xml not found – skipping pagemulti_trakt patch.")
+        return
+
+    try:
+        with xbmcvfs.File(settings_path) as fh:
+            raw = fh.read()
+        tree = ET.fromstring(raw)
+
+        for elem in tree.findall("setting"):
+            if elem.get("id") == "pagemulti_trakt":
+                if elem.text == "13":
+                    return  # already set, nothing to do
+                elem.text = "13"
+                elem.set("default", "false")
+                break
+        else:
+            # Setting not present yet – add it
+            new = ET.SubElement(tree, "setting", {"id": "pagemulti_trakt", "default": "false"})
+            new.text = "13"
+
+        updated = ET.tostring(tree, encoding="unicode", xml_declaration=False)
+        with xbmcvfs.File(settings_path, "w") as fh:
+            fh.write(updated)
+        _log("pagemulti_trakt set to 13 (Trakt Top 250 now fetches 260 items).")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to patch pagemulti_trakt: {exc}", xbmc.LOGERROR)
+
+
+_ADVANCED_SETTINGS = """\
+<advancedsettings>
+    <!-- Stream buffer: 256 MiB read-ahead so FF/RW on streaming sources
+         doesn't snap back on slow-start devices (e.g. Ugoos AM6B+). -->
+    <cache>
+        <buffermode>1</buffermode>
+        <memorysize>268435456</memorysize>
+        <readfactor>20.0</readfactor>
+    </cache>
+</advancedsettings>
+"""
+
+
+def ensure_advanced_settings() -> None:
+    """Create userdata/advancedsettings.xml with stream buffer settings.
+
+    Only writes the file if it does not already exist, so manual edits
+    made by the user are never overwritten.
+    """
+    dst = xbmcvfs.translatePath("special://profile/advancedsettings.xml")
+    if xbmcvfs.exists(dst):
+        _log("advancedsettings.xml already exists – not overwriting.")
+        return
+    try:
+        with xbmcvfs.File(dst, "w") as fh:
+            fh.write(_ADVANCED_SETTINGS)
+        _log("advancedsettings.xml created with 256 MiB stream buffer.")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to create advancedsettings.xml: {exc}", xbmc.LOGERROR)
+
+
 def main() -> None:
     # Apply skin patches and keymap on startup.
     patch_bingie_skin()
+    set_trakt_page_size()
+    ensure_advanced_settings()
 
     addon = xbmcaddon.Addon()
     if addon.getSetting("remap_ud") != "false":
