@@ -28,16 +28,18 @@
 
     <!-- Standard media remote (most CEC, IR, and bluetooth devices) -->
     <remote>
-      <!-- Hold to accumulate position, release = load stream from timestamp -->
-      <fastforward>BigStepForward</fastforward>
-      <rewind>BigStepBack</rewind>
+      <!-- Each press updates a shared property; the service waits until the
+           button is released (1.5s of silence) then does ONE seekTime() call
+           to the accumulated position — exactly like the resume button. -->
+      <fastforward>RunScript(service.kodi.lg,action=seek_forward)</fastforward>
+      <rewind>RunScript(service.kodi.lg,action=seek_back)</rewind>
     </remote>
 
     <!-- Keyboard fallback (some CEC adapters and Android boxes surface
          these as keyboard events) -->
     <keyboard>
-      <fastforward>BigStepForward</fastforward>
-      <rewind>BigStepBack</rewind>
+      <fastforward>RunScript(service.kodi.lg,action=seek_forward)</fastforward>
+      <rewind>RunScript(service.kodi.lg,action=seek_back)</rewind>
     </keyboard>
 
   </FullscreenVideo>

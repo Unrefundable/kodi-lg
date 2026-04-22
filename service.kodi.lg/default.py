@@ -31,6 +31,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 import xbmc
 import xbmcaddon
@@ -308,5 +309,48 @@ def voice_search() -> None:
     apply_search_query(text)
 
 
+# ── Seek accumulator IPC ─────────────────────────────────────────────────── #
+# The service's background thread watches these home-window properties and
+# executes ONE seekTime() call 1.5 s after the last button press.
+
+_HOME_WIN = xbmcgui.Window(10000)
+_PROP_DIR   = "KodiLG_SeekDir"    # "1" = forward, "-1" = back
+_PROP_COUNT = "KodiLG_SeekCount"  # number of presses accumulated
+_PROP_TIME  = "KodiLG_SeekTime"   # time.time() of last press (string)
+
+
+def _handle_seek(direction: int) -> None:
+    """Record one FF/RW press into the shared window properties.
+
+    The service loop reads these and executes the actual seek once the
+    button has been released for SEEK_COMMIT_DELAY seconds.
+    """
+    prev_dir   = _HOME_WIN.getProperty(_PROP_DIR)
+    prev_count = int(_HOME_WIN.getProperty(_PROP_COUNT) or "0")
+
+    # If direction changed, reset counter.
+    if prev_dir and int(prev_dir) != direction:
+        prev_count = 0
+
+    _HOME_WIN.setProperty(_PROP_DIR,   str(direction))
+    _HOME_WIN.setProperty(_PROP_COUNT, str(prev_count + 1))
+    _HOME_WIN.setProperty(_PROP_TIME,  str(time.time()))
+
+
 if __name__ == "__main__":
-    voice_search()
+    # Parse arguments: RunScript(service.kodi.lg,action=seek_forward) etc.
+    args = {}
+    for part in sys.argv[1:]:
+        if "=" in part:
+            k, v = part.split("=", 1)
+            args[k.strip()] = v.strip()
+
+    action = args.get("action", "")
+
+    if action == "seek_forward":
+        _handle_seek(1)
+    elif action == "seek_back":
+        _handle_seek(-1)
+    else:
+        # Default: voice search
+        voice_search()
