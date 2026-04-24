@@ -4,35 +4,3 @@
 # Addon Provider: Unrefundable
 msgid ""
 msgstr ""
-
-msgctxt "#32000"
-msgid "Voice Search"
-msgstr ""
-
-msgctxt "#32001"
-msgid "Listening… speak the movie or show name"
-msgstr ""
-
-msgctxt "#32002"
-msgid "Recognising speech…"
-msgstr ""
-
-msgctxt "#32003"
-msgid "Could not record audio. Check microphone connection."
-msgstr ""
-
-msgctxt "#32004"
-msgid "Could not recognise speech. Please try again."
-msgstr ""
-
-msgctxt "#32005"
-msgid "Search for this?"
-msgstr ""
-
-msgctxt "#32006"
-msgid "Button Remapping"
-msgstr ""
-
-msgctxt "#32007"
-msgid "Up/Down shows OSD during video playback"
-msgstr ""

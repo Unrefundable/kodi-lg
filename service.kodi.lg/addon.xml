@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="service.kodi.lg" version="1.0.8" name="Kodi LG" provider-name="Unrefundable">
+<addon id="service.kodi.lg" version="1.0.9" name="Kodi LG" provider-name="Unrefundable">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
-        <import addon="script.module.requests" version="2.9.1"/>
     </requires>
     <!-- Background service: installs keymap on startup and watches for events -->
     <extension point="xbmc.service" library="service.py" start="login"/>
-    <!-- Script entry point: called by keymap for voice search -->
+    <!-- Script entry point: called by keymap for seek actions -->
     <extension point="xbmc.python.script" library="default.py"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Kodi LG – LG remote enhancements for Kodi</summary>
@@ -18,14 +17,10 @@
             show the OSD progress bar and pause controls instead of the default
             10-minute skip forward/back behaviour.
 
-            Feature 2 – Voice Search:
-            Press the configured trigger button (default: Blue colour button) to
-            speak a movie or show name. Audio is captured from a microphone
-            connected to your media player device and sent to Google Speech
-            recognition. The recognised text opens a TMDb Bingie Helper search
-            directly. Note: the LG Magic Remote microphone is handled by
-            LG webOS and cannot be forwarded over HDMI-CEC; a USB microphone
-            plugged into the Ugoos AM6B+ (or similar device) is required.
+            Feature 2 – Seek on button release:
+            Fullscreen fast-forward and rewind now accumulate while the button
+            is held, then perform a single seek when the button is released.
+            This avoids repeated stream reloads during long seeks.
         </description>
         <platform>all</platform>
         <assets>

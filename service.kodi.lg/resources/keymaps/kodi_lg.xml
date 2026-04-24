@@ -10,16 +10,12 @@
   ├──────────────────┼────────┼───────────────────────┼──────────────────────┤
   │ FullscreenVideo  │ Up     │ BigSkipForward (+10m)  │ OSD (progress bar)   │
   │ FullscreenVideo  │ Down   │ BigSkipBack (-10m)     │ OSD (progress bar)   │
-  │ Global           │ Blue   │ (unassigned)           │ Voice Search addon   │
   └──────────────────┴────────┴───────────────────────┴──────────────────────┘
 
   Notes
   ─────
   • Both <remote> and <keyboard> sections are set for Up/Down because some
     HDMI-CEC adapters surface remote navigation as keyboard events.
-  • The Blue colour button is used as the voice-search trigger by default.
-    You can change this in Add-on settings > Kodi LG > Trigger button:
-    the service.py will regenerate and re-install this file on settings change.
   • This file is managed by service.kodi.lg – do not edit by hand; your
     changes will be overwritten on the next Kodi startup or settings change.
 -->

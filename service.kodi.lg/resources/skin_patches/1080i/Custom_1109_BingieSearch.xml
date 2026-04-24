@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- BINGIE – patched by service.kodi.lg: added voice search mic button (id=9898) -->
+<!-- BINGIE -->
 <window id="1109">
     <defaultcontrol always="true">77777</defaultcontrol>
     <menucontrol>900</menucontrol>
@@ -52,7 +52,7 @@
             <onup condition="Skin.HasSetting(EnableBingieSearchFullKeyboard)">Skin.SetString(CustomSearchTerm)</onup>
 			<onup condition="Skin.HasSetting(EnableBingieSearchFullKeyboard)">SetProperty(CustomSearch,1,home)</onup>
             <ondown>1007</ondown>
-            <onright condition="!Integer.IsGreater(Container(77777).NumItems,0)">9898</onright>
+            <onright condition="!Integer.IsGreater(Container(77777).NumItems,0)">9900</onright>
             <onright condition="Integer.IsGreater(Container(77777).NumItems,0)">77777</onright>
 			<onback>900</onback>
             <onback>SetFocus(900,$INFO[Window(Home).Property(menupos)])</onback>
@@ -60,49 +60,49 @@
             <include content="SearchKeyboardRow">
                 <param name="id" value="1000" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_BackspaceAndSpace_Row" />
             </include>
             <!-- First Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1001" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_First_Row" />
             </include>
             <!-- Second Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1002" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_Second_Row" />
             </include>
             <!-- Third Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1003" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_Third_Row" />
             </include>
             <!-- Fourth Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1004" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_Fourth_Row" />
             </include>
             <!-- Fifth Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1005" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_Fifth_Row" />
             </include>
             <!-- Sixth Row -->
             <include content="SearchKeyboardRow">
                 <param name="id" value="1006" />
                 <param name="onleft" value="SetFocus(900,$INFO[Window(Home).Property(menupos)])" />
-                <param name="onright" value="9898" />
+                <param name="onright" value="77777" />
                 <param name="row_include" value="SearchKeyboardRow_Sixth_Row" />
             </include>
         </control>
@@ -225,23 +225,6 @@
                 <content browse="never" limit="100" target="videos">$INFO[Window.Property(SuggestionPath)]</content>
             </include>
         </control>
-
-        <!-- ########## Voice Search Mic Button (Kodi LG) ########## -->
-        <control type="button" id="9898">
-            <left>540</left>
-            <top>32</top>
-            <width>60</width>
-            <height>60</height>
-            <texturefocus colordiffuse="FFFFFFFF">special://home/addons/service.kodi.lg/resources/images/mic.png</texturefocus>
-            <texturenofocus colordiffuse="FF888888">special://home/addons/service.kodi.lg/resources/images/mic.png</texturenofocus>
-            <label/>
-            <onclick>RunScript(service.kodi.lg)</onclick>
-            <onleft>9000</onleft>
-            <onright>77777</onright>
-            <onup>noop</onup>
-            <ondown>9000</ondown>
-        </control>
-
 	</control>
         <include content="Dim_Overlay">
             <param name="visibility" value="$EXP[IsMainMenuOpened]" />
