@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
-
-    <!-- Voice Search -->
-    <setting id="record_seconds" type="number" label="Recording duration (seconds)" default="5"/>
-    <setting id="voice_language" type="text" label="Recognition language" default="en-US"/>
-    <setting id="google_api_key" type="text" label="Google Cloud Speech API key (optional)" default=""/>
-
-    <!-- Button Remapping -->
     <setting id="remap_ud" type="bool" label="Up/Down shows OSD during video playback" default="true"/>
-
 </settings>

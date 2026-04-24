@@ -1,27 +1,8 @@
-"""
-Kodi LG – service.py
-Background service that runs for the lifetime of Kodi.
+"""Kodi LG - service.py.
 
-Responsibilities
-────────────────
-1. KEYMAP INSTALLATION
-   Copies resources/keymaps/kodi_lg.xml to special://userdata/keymaps/ on
-   startup so the LG CEC remote button remaps are always active, even after
-   Kodi updates or add-on reinstalls.
-
-2. SETTINGS WATCH
-   Re-installs or removes the keymap when the user toggles the
-   "remap_ud" setting so changes take effect without a Kodi restart
-   (a keymap reload is triggered automatically).
-
-3. TRAKT PAGE SIZE
-   Sets pagemulti_trakt=13 in the TMDb Bingie Helper user settings so
-   Trakt lists (e.g. Top 250) fetch up to 260 items instead of the
-   default 20.
-
-4. STREAM BUFFER (advancedsettings.xml)
-   Creates userdata/advancedsettings.xml with a 256 MiB read-ahead cache
-   so fast-forward/rewind on streaming sources doesn't snap back.
+Background service that keeps the managed keymaps and Bingie skin files in
+place, applies the Trakt page-size override, and commits one seek on FF/RW
+button release.
 """
 
 import os
@@ -89,13 +70,7 @@ def remove_keymap() -> None:
 
 
 def patch_bingie_skin() -> None:
-    """Copy patched Bingie skin files from addon resources into the skin folder.
-
-    Patches applied:
-    - VideoOSD.xml       – removes the auto-pause-on-OSD onload action so pressing
-                           Up/Down shows the OSD without pausing playback.
-    - Custom_1109_BingieSearch.xml – adds the voice-search mic button (id=9898).
-    """
+    """Sync the managed Bingie skin files into the installed skin."""
     patches_dir = os.path.join(_ADDON_PATH, "resources", "skin_patches")
     bingie_base = xbmcvfs.translatePath("special://home/addons/skin.bingie/")
 
@@ -109,7 +84,7 @@ def patch_bingie_skin() -> None:
         try:
             ok = xbmcvfs.copy(src, dst)
             if ok:
-                _log(f"Skin patch applied: {dst_special}")
+                _log(f"Skin file synced: {dst_special}")
             else:
                 _log(f"xbmcvfs.copy failed: {src} -> {dst}", xbmc.LOGERROR)
         except Exception as exc:  # noqa: BLE001
@@ -261,7 +236,7 @@ def ensure_advanced_settings() -> None:
 
 
 def main() -> None:
-    # Apply skin patches, keymaps, and settings on startup.
+    # Apply managed skin files, keymaps, and settings on startup.
     patch_bingie_skin()
     install_seek_keymap()
     set_trakt_page_size()
