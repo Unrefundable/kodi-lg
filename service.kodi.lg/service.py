@@ -6,8 +6,11 @@ button release.
 """
 
 import os
+import json
+import shutil
 import time
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 import xbmc
 import xbmcaddon
@@ -27,11 +30,75 @@ _SEEK_KEYMAP_DST = xbmcvfs.translatePath("special://userdata/keymaps/kodi_seek.x
 _SKIN_PATCHES = [
     ("1080i/VideoOSD.xml", "special://home/addons/skin.bingie/1080i/VideoOSD.xml"),
     ("1080i/Custom_1109_BingieSearch.xml", "special://home/addons/skin.bingie/1080i/Custom_1109_BingieSearch.xml"),
+    ("1080i/LoginScreen.xml", "special://home/addons/skin.bingie/1080i/LoginScreen.xml"),
+    ("1080i/DialogNotification.xml", "special://home/addons/skin.bingie/1080i/DialogNotification.xml"),
+    ("1080i/MyVideoNav.xml", "special://home/addons/skin.bingie/1080i/MyVideoNav.xml"),
+    ("1080i/MyMusicNav.xml", "special://home/addons/skin.bingie/1080i/MyMusicNav.xml"),
+    ("1080i/Custom_1102_StartUp2.xml", "special://home/addons/skin.bingie/1080i/Custom_1102_StartUp2.xml"),
+    ("1080i/script-skinshortcuts-includes.xml", "special://home/addons/skin.bingie/1080i/script-skinshortcuts-includes.xml"),
+    ("1080i/IncludesPaths.xml", "special://home/addons/skin.bingie/1080i/IncludesPaths.xml"),
+    ("1080i/IncludesDialogVideoInfo.xml", "special://home/addons/skin.bingie/1080i/IncludesDialogVideoInfo.xml"),
 ]
+
+_PROFILE_DEFAULT_FILES = [
+    "guisettings.xml",
+    "advancedsettings.xml",
+    "sources.xml",
+    "keymaps/kodi_lg.xml",
+    "keymaps/kodi_seek.xml",
+    "addon_data/skin.bingie/settings.xml",
+    "addon_data/inputstream.adaptive/settings.xml",
+    "addon_data/plugin.video.youtube/settings.xml",
+    "addon_data/plugin.video.tmdb.bingie.helper/settings.xml",
+    "addon_data/plugin.video.tmdb.bingie.helper/players/kdmm.json",
+    "addon_data/plugin.video.kdmm/settings.xml",
+    "addon_data/plugin.video.kdmm/settings_persistence.json",
+]
+
+_BINGIE_THREAD_PATH = xbmcvfs.translatePath(
+    "special://home/addons/script.module.bingie/resources/modules/bingie/thread.py"
+)
 
 
 def _log(msg: str, level: int = xbmc.LOGINFO) -> None:
     xbmc.log(f"[{_ADDON_ID}] {msg}", level)
+
+
+def raise_file_descriptor_limit() -> None:
+    """Give large cloud widgets enough file handles on macOS."""
+    try:
+        import resource
+    except Exception as exc:  # noqa: BLE001
+        _log(f"resource module unavailable; cannot raise file limit: {exc}", xbmc.LOGWARNING)
+        return
+
+    try:
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        target = min(max(soft, 4096), hard if hard > 0 else 4096)
+        if soft < target:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+            _log(f"Raised file descriptor limit from {soft} to {target}.")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to raise file descriptor limit: {exc}", xbmc.LOGWARNING)
+
+
+def patch_bingie_thread_limit() -> None:
+    """Cap Bingie's unlimited ParallelThread fan-out for 250-item widgets."""
+    try:
+        if not os.path.exists(_BINGIE_THREAD_PATH):
+            return
+        with open(_BINGIE_THREAD_PATH, "r", encoding="utf-8") as fh:
+            raw = fh.read()
+        if "thread_max = 12" in raw:
+            return
+        updated = raw.replace("thread_max = 0  # 0 is unlimited", "thread_max = 12")
+        updated = updated.replace("thread_max = 0", "thread_max = 12")
+        if updated != raw:
+            with open(_BINGIE_THREAD_PATH, "w", encoding="utf-8") as fh:
+                fh.write(updated)
+            _log("Bingie ParallelThread limit set to 12.")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to patch Bingie thread limit: {exc}", xbmc.LOGERROR)
 
 
 def install_keymap() -> None:
@@ -89,6 +156,288 @@ def patch_bingie_skin() -> None:
                 _log(f"xbmcvfs.copy failed: {src} -> {dst}", xbmc.LOGERROR)
         except Exception as exc:  # noqa: BLE001
             _log(f"Failed to apply skin patch {rel_src}: {exc}", xbmc.LOGERROR)
+
+
+def sync_profile_defaults() -> None:
+    """Copy Master profile defaults into non-master profiles.
+
+    Kodi's profile editor creates sparse profiles with stock settings. For this
+    cloud-streaming setup the Master profile is the baseline, so every profile
+    should inherit the same skin, widget, keymap, source, and helper settings.
+    """
+    master_dir = xbmcvfs.translatePath("special://masterprofile/")
+    profiles_xml = os.path.join(master_dir, "profiles.xml")
+    if not os.path.exists(profiles_xml):
+        _log("profiles.xml not found - skipping profile default sync.")
+        return
+
+    try:
+        tree = ET.parse(profiles_xml)
+        root = tree.getroot()
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to read profiles.xml: {exc}", xbmc.LOGERROR)
+        return
+
+    for profile in root.findall("profile"):
+        directory = profile.find("directory")
+        name = profile.findtext("name", "")
+        if directory is None:
+            continue
+
+        rel_dir = (directory.text or "").strip()
+        if rel_dir in ("", "special://masterprofile/"):
+            continue
+
+        profile_dir = os.path.join(master_dir, rel_dir)
+        copied = 0
+        for rel_file in _PROFILE_DEFAULT_FILES:
+            src = os.path.join(master_dir, rel_file)
+            dst = os.path.join(profile_dir, rel_file)
+            if not os.path.exists(src):
+                continue
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+                copied += 1
+            except Exception as exc:  # noqa: BLE001
+                _log(f"Failed to sync {rel_file} to profile {name}: {exc}", xbmc.LOGERROR)
+
+        if copied:
+            _log(f"Profile defaults synced to {name or rel_dir}: {copied} files.")
+
+
+def _set_xml_setting(path: str, setting_id: str, value: str, default: Optional[str] = "true") -> bool:
+    """Set a Kodi XML setting value in-place."""
+    if not os.path.exists(path):
+        return False
+    try:
+        tree = ET.parse(path)
+        root = tree.getroot()
+        changed = False
+        for elem in root.findall("setting"):
+            if elem.get("id") != setting_id:
+                continue
+            if elem.text != value:
+                elem.text = value
+                changed = True
+            if default is not None and elem.get("default") != default:
+                elem.set("default", default)
+                changed = True
+            break
+        else:
+            attrs = {"id": setting_id}
+            if default is not None:
+                attrs["default"] = default
+            elem = ET.SubElement(root, "setting", attrs)
+            elem.text = value
+            changed = True
+
+        if changed:
+            tree.write(path, encoding="utf-8", xml_declaration=False)
+        return changed
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to update XML setting {setting_id} in {path}: {exc}", xbmc.LOGERROR)
+        return False
+
+
+def enforce_cloud_file_settings() -> None:
+    """Disable Kodi's add-source/local-file affordances for every profile."""
+    try:
+        xbmc.executeJSONRPC(json.dumps({
+            "jsonrpc": "2.0",
+            "method": "Settings.SetSettingValue",
+            "params": {
+                "setting": "filelists.showaddsourcebuttons",
+                "value": False,
+            },
+            "id": 1,
+        }))
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to set runtime add-source setting: {exc}", xbmc.LOGWARNING)
+
+    master_dir = xbmcvfs.translatePath("special://masterprofile/")
+    paths = [os.path.join(master_dir, "guisettings.xml")]
+    profiles_dir = os.path.join(master_dir, "profiles")
+    if os.path.isdir(profiles_dir):
+        for name in os.listdir(profiles_dir):
+            paths.append(os.path.join(profiles_dir, name, "guisettings.xml"))
+
+    changed = 0
+    for path in paths:
+        if _set_xml_setting(path, "filelists.showaddsourcebuttons", "false"):
+            changed += 1
+        if _set_xml_setting(
+            path,
+            "debug.screenshotpath",
+            xbmcvfs.translatePath("special://masterprofile/screenshots/"),
+            default=None,
+        ):
+            changed += 1
+    if changed:
+        _log(f"Cloud file-list settings enforced in {changed} profile file(s).")
+
+
+def enforce_macos_audio_settings() -> None:
+    """Replace copied CoreELEC ALSA devices with the Mac default audio sink."""
+    runtime_settings = {
+        "audiooutput.audiodevice": "DARWINOSX:default|Default",
+        "audiooutput.passthrough": False,
+        "audiooutput.passthroughdevice": "DARWINOSX:default|Default",
+    }
+    for setting, value in runtime_settings.items():
+        try:
+            xbmc.executeJSONRPC(json.dumps({
+                "jsonrpc": "2.0",
+                "method": "Settings.SetSettingValue",
+                "params": {
+                    "setting": setting,
+                    "value": value,
+                },
+                "id": 1,
+            }))
+        except Exception as exc:  # noqa: BLE001
+            _log(f"Failed to set runtime audio setting {setting}: {exc}", xbmc.LOGWARNING)
+
+    master_dir = xbmcvfs.translatePath("special://masterprofile/")
+    paths = [os.path.join(master_dir, "guisettings.xml")]
+    profiles_dir = os.path.join(master_dir, "profiles")
+    if os.path.isdir(profiles_dir):
+        for name in os.listdir(profiles_dir):
+            paths.append(os.path.join(profiles_dir, name, "guisettings.xml"))
+
+    changed = 0
+    for path in paths:
+        changed += int(_set_xml_setting(
+            path, "audiooutput.audiodevice", "DARWINOSX:default|Default", default=None
+        ))
+        changed += int(_set_xml_setting(path, "audiooutput.passthrough", "false", default=None))
+        changed += int(_set_xml_setting(
+            path, "audiooutput.passthroughdevice", "DARWINOSX:default|Default", default=None
+        ))
+    if changed:
+        _log(f"macOS audio settings enforced ({changed} value update(s)).")
+
+
+def _profile_dirs() -> list[str]:
+    """Return master plus all named Kodi profile directories."""
+    master_dir = xbmcvfs.translatePath("special://masterprofile/")
+    dirs = [master_dir]
+    profiles_dir = os.path.join(master_dir, "profiles")
+    if os.path.isdir(profiles_dir):
+        for name in os.listdir(profiles_dir):
+            profile_dir = os.path.join(profiles_dir, name)
+            if os.path.isdir(profile_dir):
+                dirs.append(profile_dir)
+    return dirs
+
+
+def _ensure_settings_xml(path: str) -> None:
+    if os.path.exists(path):
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write('<settings version="2">\n</settings>\n')
+
+
+def enforce_trailer_quality_settings() -> None:
+    """Prefer the highest available YouTube trailer streams."""
+    youtube_values = {
+        "kodion.video.quality.isa": "true",
+        "kodion.mpd.videos": "true",
+        "kodion.mpd.stream.select": "3",
+        "kodion.mpd.quality.selection": "6",
+        "kodion.video.quality.ask": "false",
+        "kodion.video.quality": "4",
+    }
+    inputstream_values = {
+        "adaptivestream.type": "default",
+        "adaptivestream.res.max": "4K",
+        "adaptivestream.res.secure.max": "4K",
+        "adaptivestream.bandwidth.init.auto": "false",
+        "adaptivestream.bandwidth.init": "1000000",
+        "adaptivestream.bandwidth.max": "0",
+    }
+
+    changed = 0
+    for profile_dir in _profile_dirs():
+        youtube_path = os.path.join(profile_dir, "addon_data", "plugin.video.youtube", "settings.xml")
+        if os.path.exists(youtube_path):
+            for setting, value in youtube_values.items():
+                changed += int(_set_xml_setting(youtube_path, setting, value, default=None))
+
+        inputstream_path = os.path.join(profile_dir, "addon_data", "inputstream.adaptive", "settings.xml")
+        try:
+            _ensure_settings_xml(inputstream_path)
+            for setting, value in inputstream_values.items():
+                changed += int(_set_xml_setting(inputstream_path, setting, value, default=None))
+        except Exception as exc:  # noqa: BLE001
+            _log(f"Failed to enforce inputstream quality settings in {inputstream_path}: {exc}", xbmc.LOGERROR)
+
+    if changed:
+        _log(f"Trailer quality settings enforced ({changed} value update(s)).")
+
+
+def patch_tmdb_helper_settings_schema() -> None:
+    """Allow pagemulti_trakt=13 so Kodi accepts 260-item Trakt lists."""
+    settings_xml = xbmcvfs.translatePath(
+        "special://home/addons/plugin.video.tmdb.bingie.helper/resources/settings.xml"
+    )
+    if not os.path.exists(settings_xml):
+        _log("TMDb Bingie Helper resources/settings.xml not found – skipping schema patch.")
+        return
+
+    try:
+        tree = ET.parse(settings_xml)
+        root = tree.getroot()
+        changed = False
+        for setting in root.findall(".//setting"):
+            if setting.get("id") != "pagemulti_trakt":
+                continue
+            maximum = setting.find("./constraints/maximum")
+            if maximum is None:
+                constraints = setting.find("constraints")
+                if constraints is None:
+                    constraints = ET.SubElement(setting, "constraints")
+                maximum = ET.SubElement(constraints, "maximum")
+            if maximum.text != "13":
+                maximum.text = "13"
+                changed = True
+            break
+        if changed:
+            tree.write(settings_xml, encoding="utf-8", xml_declaration=True)
+            _log("TMDb Bingie Helper pagemulti_trakt schema maximum set to 13.")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to patch TMDb Helper settings schema: {exc}", xbmc.LOGERROR)
+
+
+def enable_login_screen() -> None:
+    """Keep Kodi on the profile chooser instead of silently auto-entering a profile."""
+    profiles_xml = xbmcvfs.translatePath("special://masterprofile/profiles.xml")
+    if not xbmcvfs.exists(profiles_xml):
+        _log("profiles.xml not found - skipping login screen enable.")
+        return
+
+    try:
+        tree = ET.parse(profiles_xml)
+        root = tree.getroot()
+
+        login = root.find("useloginscreen")
+        if login is None:
+            login = ET.SubElement(root, "useloginscreen")
+        autologin = root.find("autologin")
+        if autologin is None:
+            autologin = ET.SubElement(root, "autologin")
+
+        changed = login.text != "true" or autologin.text != "-1"
+        login.text = "true"
+        autologin.text = "-1"
+        if not changed:
+            return
+
+        tree.write(profiles_xml, encoding="utf-8", xml_declaration=False)
+        _log("Kodi profile login screen enabled.")
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Failed to enable profile login screen: {exc}", xbmc.LOGERROR)
 
 
 class LGMonitor(xbmc.Monitor):
@@ -237,10 +586,18 @@ def ensure_advanced_settings() -> None:
 
 def main() -> None:
     # Apply managed skin files, keymaps, and settings on startup.
+    raise_file_descriptor_limit()
+    patch_bingie_thread_limit()
+    enable_login_screen()
+    patch_tmdb_helper_settings_schema()
     patch_bingie_skin()
     install_seek_keymap()
+    enforce_cloud_file_settings()
+    enforce_macos_audio_settings()
+    enforce_trailer_quality_settings()
     set_trakt_page_size()
     ensure_advanced_settings()
+    sync_profile_defaults()
 
     addon = xbmcaddon.Addon()
     if addon.getSetting("remap_ud") != "false":
@@ -266,6 +623,15 @@ def main() -> None:
     while not monitor.abortRequested():
         if monitor.waitForAbort(60):
             break
+        raise_file_descriptor_limit()
+        patch_bingie_thread_limit()
+        enable_login_screen()
+        patch_tmdb_helper_settings_schema()
+        enforce_cloud_file_settings()
+        enforce_macos_audio_settings()
+        enforce_trailer_quality_settings()
+        set_trakt_page_size()
+        sync_profile_defaults()
 
 
 if __name__ == "__main__":
