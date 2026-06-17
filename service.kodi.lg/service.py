@@ -52,6 +52,7 @@ _PROFILE_DEFAULT_FILES = [
     "addon_data/plugin.video.tmdb.bingie.helper/settings.xml",
     "addon_data/plugin.video.tmdb.bingie.helper/players/kdmm.json",
     "addon_data/plugin.video.kdmm/settings.xml",
+    "addon_data/plugin.video.kdmm/ad_tokens.json",
     "addon_data/plugin.video.kdmm/settings_persistence.json",
 ]
 
