@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BINGIE -->
+<window>
+    <controls>
+        <!-- Compact streaming-service style toast -->
+        <control type="group">
+            <depth>0.54</depth>
+            <top>42</top>
+            <right>34</right>
+            <width>560</width>
+            <height>104</height>
+            <animation type="WindowOpen" reversible="false">
+                <effect type="slide" start="80" end="0" tween="cubic" easing="out" time="320" />
+                <effect type="fade" start="0" end="100" tween="cubic" easing="out" time="220" />
+            </animation>
+            <animation type="WindowClose" reversible="false">
+                <effect type="slide" start="0" end="80" tween="cubic" easing="out" time="260" />
+                <effect type="fade" start="100" end="0" tween="cubic" easing="out" time="260" />
+            </animation>
+            <visible>!Window.IsVisible(startup)</visible>
+            <!-- panel bg -->
+            <control type="image">
+                <left>0</left>
+                <top>0</top>
+                <width>560</width>
+                <height>104</height>
+                <texture colordiffuse="e6101010">diffuse/panel-spot.png</texture>
+                <bordersize>14</bordersize>
+            </control>
+            <control type="image" id="400">
+                <description>avatar</description>
+                <left>24</left>
+                <top>28</top>
+                <width>48</width>
+                <height>48</height>
+                <aspectratio>keep</aspectratio>
+            </control>
+
+            <control type="grouplist">
+                <orientation>vertical</orientation>
+                <usecontrolcoords>true</usecontrolcoords>
+                <width>450</width>
+                <height>76</height>
+                <left>88</left>
+                <top>18</top>
+                <itemgap>0</itemgap>
+                <control type="fadelabel" id="401">
+                    <description>Line 1 Label</description>
+                    <width>450</width>
+                    <height>34</height>
+                    <font>Bold24</font>
+                    <aligny>center</aligny>
+                    <scrollout>false</scrollout>
+                    <pauseatend>2000</pauseatend>
+                    <visible>!String.IsEmpty(Control.GetLabel(401))</visible>
+                </control>
+                <control type="fadelabel" id="402">
+                    <description>Line 2 Label</description>
+					<top>34</top>
+                    <width>450</width>
+                    <height>32</height>
+                    <font>Reg24</font>
+                    <aligny>center</aligny>
+                    <scrollout>false</scrollout>
+                    <pauseatend>2000</pauseatend>
+                </control>
+            </control>
+        </control>
+	</controls>
+</window>

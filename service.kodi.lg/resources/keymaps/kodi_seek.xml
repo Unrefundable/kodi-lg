@@ -31,8 +31,8 @@
       <!-- Each press updates a shared property; the service waits until the
            button is released (1.5s of silence) then does ONE seekTime() call
            to the accumulated position — exactly like the resume button. -->
-      <fastforward>RunScript(service.kodi.lg,action=seek_forward)</fastforward>
-      <rewind>RunScript(service.kodi.lg,action=seek_back)</rewind>
+      <forward>RunScript(service.kodi.lg,action=seek_forward)</forward>
+      <reverse>RunScript(service.kodi.lg,action=seek_back)</reverse>
     </remote>
 
     <!-- Keyboard fallback (some CEC adapters and Android boxes surface
@@ -41,6 +41,10 @@
       <fastforward>RunScript(service.kodi.lg,action=seek_forward)</fastforward>
       <rewind>RunScript(service.kodi.lg,action=seek_back)</rewind>
     </keyboard>
+    <appcommand>
+      <fastforward>RunScript(service.kodi.lg,action=seek_forward)</fastforward>
+      <rewind>RunScript(service.kodi.lg,action=seek_back)</rewind>
+    </appcommand>
 
   </FullscreenVideo>
 

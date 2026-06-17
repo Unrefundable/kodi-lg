@@ -10,6 +10,8 @@
   ├──────────────────┼────────┼───────────────────────┼──────────────────────┤
   │ FullscreenVideo  │ Up     │ BigSkipForward (+10m)  │ OSD (progress bar)   │
   │ FullscreenVideo  │ Down   │ BigSkipBack (-10m)     │ OSD (progress bar)   │
+  │ FullscreenVideo  │ Back   │ Kodi back/menu         │ Stop playback        │
+  │ FullscreenVideo  │ Ch +/- │ BigSkip seek           │ No operation         │
   └──────────────────┴────────┴───────────────────────┴──────────────────────┘
 
   Notes
@@ -21,6 +23,21 @@
 -->
 <keymap>
 
+  <!-- Make remote Back, Backspace, and Escape resolve consistently. -->
+  <global>
+    <remote>
+      <back>Back</back>
+    </remote>
+    <keyboard>
+      <backspace>Back</backspace>
+      <escape>Back</escape>
+      <browser_back>Back</browser_back>
+    </keyboard>
+    <appcommand>
+      <browser_back>Back</browser_back>
+    </appcommand>
+  </global>
+
   <!-- ── Video playback: Up/Down shows OSD instead of 10-min seek ───────── -->
   <FullscreenVideo>
 
@@ -28,13 +45,26 @@
     <remote>
       <up>OSD</up>
       <down>OSD</down>
+      <channelplus>noop</channelplus>
+      <channelminus>noop</channelminus>
+      <back>RunScript(service.kodi.lg,action=back_from_video)</back>
     </remote>
 
     <!-- Fallback: some CEC adapters surface navigation as keyboard events -->
     <keyboard>
       <up>OSD</up>
       <down>OSD</down>
+      <pageup>noop</pageup>
+      <pagedown>noop</pagedown>
+      <backspace>RunScript(service.kodi.lg,action=back_from_video)</backspace>
+      <escape>RunScript(service.kodi.lg,action=back_from_video)</escape>
+      <browser_back>RunScript(service.kodi.lg,action=back_from_video)</browser_back>
     </keyboard>
+    <appcommand>
+      <channel_up>noop</channel_up>
+      <channel_down>noop</channel_down>
+      <browser_back>RunScript(service.kodi.lg,action=back_from_video)</browser_back>
+    </appcommand>
 
   </FullscreenVideo>
 
