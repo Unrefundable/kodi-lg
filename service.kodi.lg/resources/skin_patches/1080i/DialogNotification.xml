@@ -49,6 +49,8 @@
                     <width>450</width>
                     <height>34</height>
                     <font>Bold24</font>
+                    <textcolor>FFFFFFFF</textcolor>
+                    <shadowcolor>AA000000</shadowcolor>
                     <aligny>center</aligny>
                     <scrollout>false</scrollout>
                     <pauseatend>2000</pauseatend>
@@ -60,6 +62,8 @@
                     <width>450</width>
                     <height>32</height>
                     <font>Reg24</font>
+                    <textcolor>FFFFFFFF</textcolor>
+                    <shadowcolor>AA000000</shadowcolor>
                     <aligny>center</aligny>
                     <scrollout>false</scrollout>
                     <pauseatend>2000</pauseatend>

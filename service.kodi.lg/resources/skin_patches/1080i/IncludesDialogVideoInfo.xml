@@ -690,6 +690,7 @@
 							
 							<!-- Add/Remove Favorites -->
                             <control type="radiobutton" id="561">
+								<visible>false</visible>
 								<visible>!$EXP[IsEpisodeDBType]</visible>
 								<visible>String.IsEqual(ListItem.Path,plugin://plugin.video.tmdb.bingie.helper/) | !String.IsEmpty(ListItem.DBID)</visible>
                                 <visible>Skin.HasSetting(videoinfo_button_favorites)</visible>
@@ -719,6 +720,7 @@
 							
 							<!-- Trakt Manager -->
                             <control type="radiobutton" id="562">
+								<visible>false</visible>
 								<visible>!$EXP[IsEpisodeDBType]</visible>
                                 <visible>Skin.HasSetting(videoinfo_button_trakt)</visible>
                                 <visible>$EXP[IsTvShowDBTypeNoFallback] | $EXP[IsMovieDBTypeNoFallback]</visible>
@@ -1934,6 +1936,7 @@
 							
 							<!-- Add/Remove Favorites -->
                             <control type="radiobutton" id="561">
+								<visible>false</visible>
 								<visible>!$EXP[IsEpisodeDBType]</visible>
 								<visible>String.IsEqual(ListItem.Path,plugin://plugin.video.tmdb.bingie.helper/) | !String.IsEmpty(ListItem.DBID)</visible>
                                 <visible>Skin.HasSetting(videoinfo_button_favorites)</visible>
@@ -1954,6 +1957,7 @@
 							
 							<!-- Trakt Manager -->
                             <control type="radiobutton" id="562">
+								<visible>false</visible>
                                 <visible>Skin.HasSetting(videoinfo_button_trakt)</visible>
 								<visible>!$EXP[IsSetDBType] + !Window.IsActive(1116) + !Window.IsActive(tvrecordings)</visible>
 								<include>Bingie_InfoDialog_Button_Default_Defs</include>

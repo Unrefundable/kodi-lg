@@ -37,6 +37,7 @@ _SKIN_PATCHES = [
     ("1080i/Custom_1102_StartUp2.xml", "special://home/addons/skin.bingie/1080i/Custom_1102_StartUp2.xml"),
     ("1080i/script-skinshortcuts-includes.xml", "special://home/addons/skin.bingie/1080i/script-skinshortcuts-includes.xml"),
     ("1080i/IncludesPaths.xml", "special://home/addons/skin.bingie/1080i/IncludesPaths.xml"),
+    ("1080i/IncludesDefaultSkinSettings.xml", "special://home/addons/skin.bingie/1080i/IncludesDefaultSkinSettings.xml"),
     ("1080i/IncludesDialogVideoInfo.xml", "special://home/addons/skin.bingie/1080i/IncludesDialogVideoInfo.xml"),
 ]
 
