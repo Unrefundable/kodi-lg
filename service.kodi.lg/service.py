@@ -61,6 +61,12 @@ _BINGIE_THREAD_PATH = xbmcvfs.translatePath(
     "special://home/addons/script.module.bingie/resources/modules/bingie/thread.py"
 )
 
+_TMDB_HELPER_SETTINGS = {
+    "pagemulti_trakt": ("13", "false"),
+    "max_threads": ("10", "false"),
+}
+
+
 _VIDEO_INFO_BUTTON_SETTINGS = {
     "videoinfo_button_artwork": False,
     "videoinfo_button_cast": False,
@@ -569,43 +575,26 @@ def seek_accumulator_loop(monitor: xbmc.Monitor) -> None:
             break
 
 
+def enforce_tmdb_helper_settings() -> None:
+    """Keep TMDb Helper list size useful without unlimited thread fan-out."""
+    changed = 0
+    for profile_dir in _profile_dirs():
+        settings_path = os.path.join(
+            profile_dir, "addon_data", "plugin.video.tmdb.bingie.helper", "settings.xml"
+        )
+        try:
+            _ensure_settings_xml(settings_path)
+            for setting, (value, default) in _TMDB_HELPER_SETTINGS.items():
+                changed += int(_set_xml_setting(settings_path, setting, value, default=default))
+        except Exception as exc:  # noqa: BLE001
+            _log(f"Failed to enforce TMDb Helper settings in {settings_path}: {exc}", xbmc.LOGERROR)
+    if changed:
+        _log(f"TMDb Helper settings enforced ({changed} value update(s)).")
+
+
 def set_trakt_page_size() -> None:
-    """Set pagemulti_trakt=13 in the TMDb Bingie Helper user settings.
-
-    The plugin's UI caps this at 3 (60 items) but the code reads the
-    value directly from the user settings XML, so writing 13 gives
-    20 × 13 = 260 items — enough to cover the full Trakt Top 250.
-    """
-    settings_path = xbmcvfs.translatePath(
-        "special://profile/addon_data/plugin.video.tmdb.bingie.helper/settings.xml"
-    )
-    if not xbmcvfs.exists(settings_path):
-        _log("TMDb Bingie Helper settings.xml not found – skipping pagemulti_trakt patch.")
-        return
-
-    try:
-        with xbmcvfs.File(settings_path) as fh:
-            raw = fh.read()
-        tree = ET.fromstring(raw)
-
-        for elem in tree.findall("setting"):
-            if elem.get("id") == "pagemulti_trakt":
-                if elem.text == "13":
-                    return  # already set, nothing to do
-                elem.text = "13"
-                elem.set("default", "false")
-                break
-        else:
-            # Setting not present yet – add it
-            new = ET.SubElement(tree, "setting", {"id": "pagemulti_trakt", "default": "false"})
-            new.text = "13"
-
-        updated = ET.tostring(tree, encoding="unicode", xml_declaration=False)
-        with xbmcvfs.File(settings_path, "w") as fh:
-            fh.write(updated)
-        _log("pagemulti_trakt set to 13 (Trakt Top 250 now fetches 260 items).")
-    except Exception as exc:  # noqa: BLE001
-        _log(f"Failed to patch pagemulti_trakt: {exc}", xbmc.LOGERROR)
+    """Backward-compatible wrapper for the managed TMDb Helper settings."""
+    enforce_tmdb_helper_settings()
 
 
 def ensure_advanced_settings() -> None:
@@ -640,7 +629,7 @@ def main() -> None:
     enforce_cloud_file_settings()
     enforce_macos_audio_settings()
     enforce_trailer_quality_settings()
-    set_trakt_page_size()
+    enforce_tmdb_helper_settings()
     ensure_advanced_settings()
     sync_profile_defaults()
     enforce_video_info_button_settings()
@@ -676,7 +665,7 @@ def main() -> None:
         enforce_cloud_file_settings()
         enforce_macos_audio_settings()
         enforce_trailer_quality_settings()
-        set_trakt_page_size()
+        enforce_tmdb_helper_settings()
         sync_profile_defaults()
         enforce_video_info_button_settings()
 
