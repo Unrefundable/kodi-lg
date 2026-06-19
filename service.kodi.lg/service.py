@@ -61,6 +61,26 @@ _BINGIE_THREAD_PATH = xbmcvfs.translatePath(
     "special://home/addons/script.module.bingie/resources/modules/bingie/thread.py"
 )
 
+_VIDEO_INFO_BUTTON_SETTINGS = {
+    "videoinfo_button_artwork": False,
+    "videoinfo_button_cast": False,
+    "videoinfo_button_favorites": False,
+    "videoinfo_button_moreinfo": False,
+    "videoinfo_button_mylist": True,
+    "videoinfo_button_myrating": False,
+    "videoinfo_button_play_beginning": True,
+    "videoinfo_button_play_next": True,
+    "videoinfo_button_play_next_tmdb": True,
+    "videoinfo_button_plot": False,
+    "videoinfo_button_refresh": False,
+    "videoinfo_button_similar": False,
+    "videoinfo_button_trailer": True,
+    "videoinfo_button_trailersandmore": False,
+    "videoinfo_button_trakt": False,
+    "videoinfo_button_versions": False,
+    "videoinfo_button_wikipedia": False,
+}
+
 
 def _log(msg: str, level: int = xbmc.LOGINFO) -> None:
     xbmc.log(f"[{_ADDON_ID}] {msg}", level)
@@ -379,6 +399,29 @@ def enforce_trailer_quality_settings() -> None:
         _log(f"Trailer quality settings enforced ({changed} value update(s)).")
 
 
+def enforce_video_info_button_settings() -> None:
+    """Keep video-info buttons aligned with the Mac/Ugoos curated layout."""
+    changed = 0
+    for setting, enabled in _VIDEO_INFO_BUTTON_SETTINGS.items():
+        xbmc.executebuiltin(f"Skin.SetBool({setting})" if enabled else f"Skin.Reset({setting})")
+
+    for profile_dir in _profile_dirs():
+        settings_path = os.path.join(profile_dir, "addon_data", "skin.bingie", "settings.xml")
+        try:
+            _ensure_settings_xml(settings_path)
+            for setting, enabled in _VIDEO_INFO_BUTTON_SETTINGS.items():
+                changed += int(_set_xml_setting(
+                    settings_path,
+                    setting,
+                    "true" if enabled else "false",
+                    default=None,
+                ))
+        except Exception as exc:  # noqa: BLE001
+            _log(f"Failed to enforce video-info buttons in {settings_path}: {exc}", xbmc.LOGERROR)
+    if changed:
+        _log(f"Video-info button settings enforced ({changed} value update(s)).")
+
+
 def patch_tmdb_helper_settings_schema() -> None:
     """Allow pagemulti_trakt=13 so Kodi accepts 260-item Trakt lists."""
     settings_xml = xbmcvfs.translatePath(
@@ -600,6 +643,7 @@ def main() -> None:
     set_trakt_page_size()
     ensure_advanced_settings()
     sync_profile_defaults()
+    enforce_video_info_button_settings()
 
     addon = xbmcaddon.Addon()
     if addon.getSetting("remap_ud") != "false":
@@ -634,6 +678,7 @@ def main() -> None:
         enforce_trailer_quality_settings()
         set_trakt_page_size()
         sync_profile_defaults()
+        enforce_video_info_button_settings()
 
 
 if __name__ == "__main__":
