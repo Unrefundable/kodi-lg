@@ -4,7 +4,7 @@
     <controls>
         <!-- Compact streaming-service style toast -->
         <control type="group">
-            <depth>0.54</depth>
+            <depth>0</depth>
             <top>42</top>
             <right>34</right>
             <width>560</width>
