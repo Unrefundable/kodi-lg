@@ -4,6 +4,7 @@ Script entry point for remote key actions managed by Kodi LG.
 """
 
 import json
+import random
 import sys
 import time
 from urllib.parse import urlencode
@@ -80,6 +81,89 @@ def _detail_path_from_context(raw_context: str) -> str:
     return "plugin://plugin.video.tmdb.bingie.helper/?" + urlencode(params)
 
 
+def _jsonrpc(method: str, params: dict | None = None) -> dict:
+    try:
+        raw = xbmc.executeJSONRPC(json.dumps({
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+            "id": 1,
+        }))
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except Exception as exc:  # noqa: BLE001
+        _log(f"JSON-RPC {method} failed: {exc}", xbmc.LOGWARNING)
+        return {}
+
+
+def _item_unique_id(item: dict, *keys: str) -> str:
+    unique_ids = item.get("uniqueid") or {}
+    if not isinstance(unique_ids, dict):
+        return ""
+    for key in keys:
+        value = str(unique_ids.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _detail_path_from_library_item(media_type: str, item: dict) -> str:
+    tmdb_id = _item_unique_id(item, "tmdb", "tmdb_id")
+    imdb_id = _item_unique_id(item, "imdb", "imdb_id")
+    params = {"info": "details", "tmdb_type": media_type, "nextpage": "false"}
+    if tmdb_id:
+        params["tmdb_id"] = tmdb_id
+        return "plugin://plugin.video.tmdb.bingie.helper/?" + urlencode(params)
+    if imdb_id:
+        params["imdb_id"] = imdb_id
+        return "plugin://plugin.video.tmdb.bingie.helper/?" + urlencode(params)
+    if media_type == "movie" and item.get("movieid"):
+        return f"videodb://movies/titles/{item['movieid']}/"
+    if media_type == "tv" and item.get("tvshowid"):
+        return f"videodb://tvshows/titles/{item['tvshowid']}/"
+    return ""
+
+
+def _random_library_detail_path() -> str:
+    queries = [
+        ("movie", "VideoLibrary.GetMovies", "movies"),
+        ("tv", "VideoLibrary.GetTVShows", "tvshows"),
+    ]
+    random.shuffle(queries)
+    for media_type, method, result_key in queries:
+        data = _jsonrpc(method, {
+            "properties": ["uniqueid", "title", "year"],
+            "limits": {"start": 0, "end": 1},
+            "sort": {"method": "random"},
+        })
+        items = data.get("result", {}).get(result_key) or []
+        if not items:
+            continue
+        path = _detail_path_from_library_item(media_type, items[0])
+        if path:
+            return path
+    return ""
+
+
+def _handle_surprise_me() -> None:
+    """Open one random movie/show details page instead of a random-items listing."""
+    path = _random_library_detail_path()
+    if not path:
+        xbmcgui.Dialog().notification("Kodi LG", "No random title found", xbmcgui.NOTIFICATION_INFO, 4000)
+        _log("Surprise Me could not find a library movie or show.", xbmc.LOGWARNING)
+        return
+    _show_staging_overlay()
+    try:
+        xbmc.executebuiltin(f'ActivateWindow(Videos,"{path}",return)')
+        xbmc.sleep(_STAGING_WAIT_MS)
+        _close_staging_overlay()
+        xbmc.sleep(100)
+        if not _open_video_info_dialog():
+            _log("Surprise Me landed on details listing; Info dialog did not open.", xbmc.LOGWARNING)
+    finally:
+        _close_staging_overlay()
+
+
 def _open_video_info_dialog() -> bool:
     """Open Bingie's video-info dialog after a TMDb Helper details route loads."""
     for _ in range(24):
@@ -144,6 +228,10 @@ def main() -> None:
 
     if action == "back_from_video":
         _handle_back_from_video()
+        return
+
+    if action == "surprise_me":
+        _handle_surprise_me()
         return
 
     if action == "video_info_buttons":
