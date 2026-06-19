@@ -7,7 +7,7 @@ import json
 import random
 import sys
 import time
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import xbmc
 import xbmcaddon
@@ -22,6 +22,13 @@ _PROP_COUNT = "KodiLG_SeekCount"
 _PROP_TIME = "KodiLG_SeekTime"
 _KDMM_CONTEXT = "kdmm.playback_context"
 _STAGING_WAIT_MS = 2200
+_SURPRISE_SOURCE_PATHS = [
+    "plugin://plugin.video.tmdb.bingie.helper?info=trending_day&tmdb_type=movie&nextpage=false&length=1",
+    "plugin://plugin.video.tmdb.bingie.helper?info=trending_day&tmdb_type=tv&nextpage=false&length=1",
+    "plugin://plugin.video.tmdb.bingie.helper?info=trending_week&tmdb_type=tv&nextpage=false&length=1",
+    "plugin://plugin.video.tmdb.bingie.helper?info=popular&tmdb_type=tv&nextpage=false&length=1",
+    "plugin://plugin.video.tmdb.bingie.helper/?info=random_popular&tmdb_type=both&widget=true",
+]
 
 
 def _log(msg: str, level: int = xbmc.LOGINFO) -> None:
@@ -124,6 +131,49 @@ def _detail_path_from_library_item(media_type: str, item: dict) -> str:
     return ""
 
 
+def _detail_path_from_tmdb_helper_item(item: dict) -> str:
+    unique_ids = item.get("uniqueid") or {}
+    if not isinstance(unique_ids, dict):
+        unique_ids = {}
+
+    parsed = urlparse(item.get("file") or "")
+    query = parse_qs(parsed.query)
+    media_type = (item.get("type") or query.get("tmdb_type", [""])[0] or "").strip()
+    if media_type == "tvshow":
+        media_type = "tv"
+    if media_type not in {"movie", "tv"}:
+        return ""
+
+    tmdb_id = str(unique_ids.get("tmdb") or query.get("tmdb_id", [""])[0] or "").strip()
+    imdb_id = str(unique_ids.get("imdb") or unique_ids.get("unknown") or query.get("imdb_id", [""])[0] or "").strip()
+    params = {"info": "details", "tmdb_type": media_type, "nextpage": "false"}
+    if tmdb_id:
+        params["tmdb_id"] = tmdb_id
+    elif imdb_id:
+        params["imdb_id"] = imdb_id
+    else:
+        return ""
+    return "plugin://plugin.video.tmdb.bingie.helper/?" + urlencode(params)
+
+
+def _random_tmdb_helper_detail_path() -> str:
+    sources = list(_SURPRISE_SOURCE_PATHS)
+    random.shuffle(sources)
+    for source in sources:
+        data = _jsonrpc("Files.GetDirectory", {
+            "directory": source,
+            "media": "video",
+            "properties": ["uniqueid", "title", "year"],
+        })
+        items = data.get("result", {}).get("files") or []
+        random.shuffle(items)
+        for item in items:
+            path = _detail_path_from_tmdb_helper_item(item)
+            if path:
+                return path
+    return ""
+
+
 def _random_library_detail_path() -> str:
     queries = [
         ("movie", "VideoLibrary.GetMovies", "movies"),
@@ -147,10 +197,10 @@ def _random_library_detail_path() -> str:
 
 def _handle_surprise_me() -> None:
     """Open one random movie/show details page instead of a random-items listing."""
-    path = _random_library_detail_path()
+    path = _random_tmdb_helper_detail_path() or _random_library_detail_path()
     if not path:
         xbmcgui.Dialog().notification("Kodi LG", "No random title found", xbmcgui.NOTIFICATION_INFO, 4000)
-        _log("Surprise Me could not find a library movie or show.", xbmc.LOGWARNING)
+        _log("Surprise Me could not find a TMDb Helper or library movie/show.", xbmc.LOGWARNING)
         return
     _show_staging_overlay()
     try:
