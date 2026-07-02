@@ -4,13 +4,8 @@ LG remote enhancements for Kodi, installable via a Kodi add-on repository hosted
 
 ## Features
 
-### 1 – OSD on Up / Down during video playback
+### OSD on Up / Down during video playback
 By default, pressing **Up** or **Down** on your LG remote's navigation circle while watching a video skips forward or backward 10 minutes.  This add-on remaps those buttons to show the **OSD progress bar and pause controls** instead—the same screen you normally see by pressing OK/Select.
-
-### 2 – Voice Search
-Press the **Blue colour button** (configurable) on your LG remote to speak a movie or show name.  The add-on records audio from a microphone connected to your media player device, sends it to Google Speech recognition, and opens a TMDb Bingie Helper search with the result—no typing required.
-
-> **Note on the LG Magic Remote microphone:** The Magic Remote's built-in mic is handled entirely by LG webOS and its audio is **not** forwarded over HDMI-CEC to connected devices.  You need a **USB microphone plugged into your Ugoos AM6B+** (or whichever device runs Kodi/CoreELEC) for voice capture to work.
 
 ---
 
@@ -57,34 +52,3 @@ Go to **Settings → Add-ons → My add-ons → Services → Kodi LG → Configu
 | Up/Down shows OSD | Enabled | Toggle the playback button remap |
 
 ---
-
-## Repository structure
-
-```
-kodi-lg/
-├── addons.xml                          ← Kodi repo index
-├── addons.xml.md5                      ← MD5 checksum
-├── repository.kodi.lg/
-│   ├── addon.xml                       ← source
-│   └── repository.kodi.lg-1.0.0.zip   ← installable zip
-└── service.kodi.lg/
-    ├── addon.xml                       ← source
-    ├── service.py                      ← background service (keymap install)
-    ├── default.py                      ← voice search script
-    └── resources/
-        ├── keymaps/kodi_lg.xml         ← keymap overrides
-        └── settings.xml
-```
-
-## Updating / rebuilding the repo
-
-After editing source files, re-run the build script to regenerate zips and `addons.xml`:
-
-```bash
-python3 build.py
-git add -A
-git commit -m "bump version X.Y.Z"
-git push
-```
-
-Kodi's repository checker will pick up the update automatically within 24 hours, or immediately via **Settings → Add-ons → My add-ons → Kodi LG Repository → Check for updates**.
